@@ -7,7 +7,7 @@ class AnomalyDetector:
     def __init__(self, device_id: str, metric_names: list):
         self.device_id = device_id
         self.metric_names = metric_names
-        self.model = IsolationForest(contamination=0.1, random_state=42)
+        self.model = IsolationForest(contamination=0.05, random_state=42)
         self.scaler = StandardScaler()
         self.history = []         # Historique des valeurs
         self.is_trained = False
@@ -47,7 +47,7 @@ class AnomalyDetector:
 
         # Conversion explicite en types Python natifs
         score = float(score)
-        is_anomaly = bool(prediction == -1)
+        is_anomaly = bool(prediction == -1) and score < -0.10
 
         result = {
             "device_id": self.device_id,
@@ -64,9 +64,9 @@ class AnomalyDetector:
         return result
 
     def _get_severity(self, score: float) -> str:
-        if score > -0.05:
+        if score > -0.10:
             return "normal"
-        elif score > -0.15:
+        elif score > -0.20:
             return "warning"
         else:
             return "critical"
@@ -78,7 +78,7 @@ class AnomalyDetector:
             if metric_name in metrics:
                 m = metrics[metric_name]
                 deviation = abs(m["value"] - m["baseline"]) / m["baseline"] * 100
-                if deviation > 20:
+                if deviation > 30:
                     affected.append({
                         "metric": metric_name,
                         "value": m["value"],
