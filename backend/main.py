@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from simulator import inject_anomaly, clear_anomaly, get_all_snapshots, get_devices_list
+from anomaly_detector import DetectorManager
 
 app = FastAPI(title="SecureIoT Monitor API")
 
@@ -12,6 +13,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+detector = DetectorManager()
 
 class AnomalyRequest(BaseModel):
     device_id: str
@@ -27,7 +30,20 @@ def get_devices():
 
 @app.get("/api/snapshot")
 def get_snapshot():
-    return get_all_snapshots()
+    snapshots = get_all_snapshots()
+    results = []
+    for snapshot in snapshots:
+        analysis = detector.analyze(snapshot)
+        results.append({**snapshot, "analysis": analysis})
+    return results
+
+@app.get("/api/alerts")
+def get_alerts(limit: int = 20):
+    return detector.get_alerts(limit)
+
+@app.get("/api/detector-status")
+def get_detector_status():
+    return detector.get_detector_status()
 
 @app.post("/api/inject-anomaly")
 def inject(request: AnomalyRequest):
