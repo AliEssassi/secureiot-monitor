@@ -35,7 +35,7 @@ function Header({ isLive, alertCount }) {
           color: 'var(--c-muted)', background: 'var(--c-raised)',
           border: '1px solid var(--c-border)',
           padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.04em'
-        }}>v1.0-mvp</span>
+        }}>v1.1-mvp</span>
       </div>
 
       <div style={{ flex: 1 }} />
