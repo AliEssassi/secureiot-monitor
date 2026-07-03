@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from simulator import inject_anomaly, clear_anomaly, get_all_snapshots, get_devices_list, get_history
 from anomaly_detector import DetectorManager
 from incident_manager import IncidentManager
+from topology import compute_topology_state
 
 app = FastAPI(title="SecureIoT Monitor API")
 
@@ -98,3 +99,11 @@ def update_incident_status(incident_id: str, update: StatusUpdate):
 @app.get("/api/incidents-stats")
 def get_incidents_stats():
     return incidents.get_stats()
+
+@app.get("/api/topology")
+def get_topology():
+    snapshot = get_all_snapshots()
+    for s in snapshot:
+        analysis = detector.analyze(s)
+        s["analysis"] = analysis
+    return compute_topology_state(snapshot)
