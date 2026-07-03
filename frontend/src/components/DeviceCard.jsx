@@ -12,13 +12,38 @@ function DeviceCard({ device, onClick, isSelected }) {
   const analysis = device.analysis || {}
   const isAnomaly = analysis.is_anomaly === true
   const isCollecting = analysis.status === 'collecting'
+  const inProgress = device.incidentStatus === 'in_progress'
   const score = analysis.anomaly_score
 
-  const accent = isAnomaly ? 'var(--c-red)' : isCollecting ? 'var(--c-border)' : 'var(--c-green)'
-  const accentHex = isAnomaly ? '#E8405A' : isCollecting ? '#1C2E45' : '#1AB87E'
-  const statusLabel = isAnomaly ? 'ANOMALIE' : isCollecting ? 'COLLECTE' : 'NORMAL'
-  const statusColor = isAnomaly ? 'var(--c-red)' : isCollecting ? 'var(--c-muted)' : 'var(--c-green)'
-
+  // Couleur : jaune si pris en charge, rouge si anomalie non traitée, vert sinon
+  const accent = inProgress
+    ? 'var(--c-amber)'
+    : isAnomaly
+    ? 'var(--c-red)'
+    : isCollecting
+    ? 'var(--c-border)'
+    : 'var(--c-green)'
+  const accentHex = inProgress
+    ? '#E8A840'
+    : isAnomaly
+    ? '#E8405A'
+    : isCollecting
+    ? '#1C2E45'
+    : '#1AB87E'
+  const statusLabel = inProgress
+    ? 'EN COURS'
+    : isAnomaly
+    ? 'ANOMALIE'
+    : isCollecting
+    ? 'COLLECTE'
+    : 'NORMAL'
+  const statusColor = inProgress
+    ? 'var(--c-amber)'
+    : isAnomaly
+    ? 'var(--c-red)'
+    : isCollecting
+    ? 'var(--c-muted)'
+    : 'var(--c-green)'
   // Accumule l'historique du score pour la sparkline
   useEffect(() => {
     if (score !== undefined) {

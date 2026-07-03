@@ -4,20 +4,39 @@ import Sidebar from './components/Sidebar'
 import DeviceCard from './components/DeviceCard'
 import AlertPanel from './components/AlertPanel'
 import DetailPanel from './components/DetailPanel'
+import IncidentModal from './components/IncidentModal'
 
 function App() {
   const [snapshot, setSnapshot] = useState([])
   const [alerts, setAlerts] = useState([])
   const [isLive, setIsLive] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
+  const [openIncident, setOpenIncident] = useState(null)
 
   const fetchData = async () => {
     try {
-      const [sr, ar] = await Promise.all([
+      const [sr, ar, ir] = await Promise.all([
         fetch('/api/snapshot'),
-        fetch('/api/alerts')
+        fetch('/api/alerts'),
+        fetch('/api/incidents')
       ])
-      setSnapshot(await sr.json())
+      const snap = await sr.json()
+      const incs = await ir.json()
+
+      // Map device → statut d'incident actif
+      const statusByDevice = {}
+      incs.forEach(inc => {
+        if (inc.status !== 'resolved') {
+          statusByDevice[inc.device_id] = inc.status
+        }
+      })
+      // Enrichit chaque device avec le statut de son incident
+      const enriched = snap.map(d => ({
+        ...d,
+        incidentStatus: statusByDevice[d.id] || null
+      }))
+
+      setSnapshot(enriched)
       setAlerts(await ar.json())
       setIsLive(true)
     } catch {
@@ -31,7 +50,6 @@ function App() {
     return () => clearInterval(iv)
   }, [])
 
-  // Compteur corrigé : basé sur l'état réel des devices, pas l'historique
   const anomalyCount = snapshot.filter(d => d.analysis?.is_anomaly).length
 
   const handleCardClick = (device) => {
@@ -85,7 +103,14 @@ function App() {
         )}
       </main>
 
-      <AlertPanel alerts={alerts} />
+      <AlertPanel onIncidentClick={setOpenIncident} />
+
+      {openIncident && (
+        <IncidentModal
+          incidentId={openIncident}
+          onClose={() => setOpenIncident(null)}
+        />
+      )}
     </div>
   )
 }
