@@ -68,6 +68,27 @@ DEVICES = [
 
 # Stocke les anomalies actives par appareil
 active_anomalies = {}
+# Historique des snapshots par appareil (pour les graphiques)
+metrics_history = {}
+MAX_HISTORY = 60  # 60 points = ~2 minutes à 2s d'intervalle
+
+def record_history(snapshot: dict):
+    """Enregistre un snapshot dans l'historique."""
+    device_id = snapshot["id"]
+    if device_id not in metrics_history:
+        metrics_history[device_id] = []
+
+    point = {"timestamp": snapshot["timestamp"]}
+    for metric_name, metric_data in snapshot["metrics"].items():
+        point[metric_name] = metric_data["value"]
+
+    metrics_history[device_id].append(point)
+    if len(metrics_history[device_id]) > MAX_HISTORY:
+        metrics_history[device_id] = metrics_history[device_id][-MAX_HISTORY:]
+
+def get_history(device_id: str) -> list:
+    """Retourne l'historique d'un appareil."""
+    return metrics_history.get(device_id, [])
 
 def generate_normal_value(baseline: float, noise_pct: float = 0.05) -> float:
     """Génère une valeur normale autour d'une baseline avec du bruit gaussien."""
@@ -127,7 +148,10 @@ def get_device_snapshot(device: dict) -> dict:
 
 def get_all_snapshots() -> list:
     """Retourne un snapshot de tous les appareils."""
-    return [get_device_snapshot(device) for device in DEVICES]
+    snapshots = [get_device_snapshot(device) for device in DEVICES]
+    for snapshot in snapshots:
+        record_history(snapshot)
+    return snapshots
 
 def inject_anomaly(device_id: str, anomaly_type: str) -> dict:
     """Injecte une anomalie sur un appareil."""

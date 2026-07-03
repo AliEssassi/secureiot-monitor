@@ -1,32 +1,86 @@
-function Header({ alertCount, isLive }) {
+import { useState, useEffect } from 'react'
+
+function Header({ isLive, alertCount }) {
+  const [time, setTime] = useState(new Date())
+
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
   return (
-    <div className="flex items-center justify-between mb-6">
-      
-      {/* Titre + statut live */}
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold text-white">
-          🛡️ SecureIoT Monitor
-        </h1>
-        {isLive && (
-          <div className="flex items-center gap-2 bg-green-900/30 border border-green-500/30 rounded-full px-3 py-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-green-400 text-sm font-medium">LIVE</span>
-          </div>
-        )}
+    <header style={{
+      gridArea: 'header',
+      background: 'var(--c-surface)',
+      borderBottom: '1px solid var(--c-border)',
+      display: 'flex', alignItems: 'center',
+      padding: '0 16px', gap: '12px', zIndex: 10
+    }}>
+
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2L3 6v5c0 4.1 3 7.9 7 9 4-1.1 7-4.9 7-9V6L10 2z"
+            fill="var(--c-blue)" opacity="0.2"
+            stroke="var(--c-blue)" strokeWidth="1.2" strokeLinejoin="round"/>
+          <path d="M7 10l2 2 4-4"
+            stroke="var(--c-blue)" strokeWidth="1.4"
+            strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-bright)', letterSpacing: '-0.01em' }}>
+          SecureIoT Monitor
+        </span>
+        <span style={{
+          fontSize: '9px', fontFamily: 'var(--mono)',
+          color: 'var(--c-muted)', background: 'var(--c-raised)',
+          border: '1px solid var(--c-border)',
+          padding: '2px 6px', borderRadius: '3px', letterSpacing: '0.04em'
+        }}>v1.0-mvp</span>
       </div>
 
-      {/* Compteur d'alertes */}
-      <div className="flex items-center gap-3">
+      <div style={{ flex: 1 }} />
+
+      {/* Right */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {alertCount > 0 && (
-          <div className="flex items-center gap-2 bg-red-900/30 border border-red-500/30 rounded-full px-3 py-1">
-            <span className="text-red-400 text-sm font-bold">
-              ⚠ {alertCount} alerte{alertCount > 1 ? 's' : ''}
-            </span>
+          <div className="blink" style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            color: 'var(--c-red)', fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em'
+          }}>
+            <span>▲</span>
+            {alertCount} ALERTE{alertCount > 1 ? 'S' : ''}
           </div>
         )}
-      </div>
 
-    </div>
+        <div style={{ width: '1px', height: '14px', background: 'var(--c-border)' }} />
+
+        <span style={{ fontSize: '11px', fontFamily: 'var(--mono)', color: 'var(--c-muted)' }}>
+          {time.toLocaleTimeString('fr-FR')}
+        </span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ position: 'relative', width: '8px', height: '8px' }}>
+            {isLive && (
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%',
+                background: 'var(--c-green)',
+                animation: 'ring-out 1.5s ease-out infinite'
+              }} />
+            )}
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: '50%',
+              background: isLive ? 'var(--c-green)' : 'var(--c-muted)'
+            }} />
+          </div>
+          <span style={{
+            fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em',
+            color: isLive ? 'var(--c-green)' : 'var(--c-muted)'
+          }}>
+            {isLive ? 'LIVE' : 'OFFLINE'}
+          </span>
+        </div>
+      </div>
+    </header>
   )
 }
 

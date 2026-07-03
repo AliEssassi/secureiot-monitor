@@ -1,95 +1,137 @@
-function DeviceCard({ device }) {
-  const status = device.analysis?.status || 'collecting'
-  const score = device.analysis?.anomaly_score
+import { useState, useEffect } from 'react'
+import Sparkline from './Sparkline'
 
-  const statusConfig = {
-    normal: {
-      border: 'border-green-500/30',
-      badge: 'bg-green-900/30 text-green-400',
-      dot: 'bg-green-400',
-      label: 'Normal'
-    },
-    anomaly: {
-      border: 'border-red-500/50',
-      badge: 'bg-red-900/30 text-red-400',
-      dot: 'bg-red-400',
-      label: 'Anomalie'
-    },
-    warning: {
-      border: 'border-yellow-500/50',
-      badge: 'bg-yellow-900/30 text-yellow-400',
-      dot: 'bg-yellow-400',
-      label: 'Warning'
-    },
-    collecting: {
-      border: 'border-gray-600/30',
-      badge: 'bg-gray-800 text-gray-400',
-      dot: 'bg-gray-400',
-      label: 'Collecte...'
+const TYPE_BADGES = {
+  machine: 'CNC', router: 'RTR', sensor: 'SNS',
+  robot: 'RBT', smartmeter: 'PWR', camera: 'CAM'
+}
+
+function DeviceCard({ device, onClick, isSelected }) {
+  const [scoreHistory, setScoreHistory] = useState([])
+
+  const analysis = device.analysis || {}
+  const isAnomaly = analysis.is_anomaly === true
+  const isCollecting = analysis.status === 'collecting'
+  const score = analysis.anomaly_score
+
+  const accent = isAnomaly ? 'var(--c-red)' : isCollecting ? 'var(--c-border)' : 'var(--c-green)'
+  const accentHex = isAnomaly ? '#E8405A' : isCollecting ? '#1C2E45' : '#1AB87E'
+  const statusLabel = isAnomaly ? 'ANOMALIE' : isCollecting ? 'COLLECTE' : 'NORMAL'
+  const statusColor = isAnomaly ? 'var(--c-red)' : isCollecting ? 'var(--c-muted)' : 'var(--c-green)'
+
+  // Accumule l'historique du score pour la sparkline
+  useEffect(() => {
+    if (score !== undefined) {
+      setScoreHistory(prev => {
+        const next = [...prev, score]
+        return next.slice(-20)
+      })
     }
-  }
-
-  const config = statusConfig[status] || statusConfig.collecting
-
-  const typeIcons = {
-    machine: '⚙️',
-    router: '🌐',
-    sensor: '📡',
-    robot: '🤖',
-    smartmeter: '⚡',
-    camera: '📷'
-  }
+  }, [score])
 
   return (
-    <div className={`bg-gray-900 border ${config.border} rounded-xl p-4 transition-all duration-300`}>
-
-      {/* En-tête de la carte */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{typeIcons[device.type] || '📦'}</span>
+    <div
+      onClick={() => onClick(device)}
+      style={{
+        background: 'var(--c-surface)',
+        border: `1px solid ${isSelected ? accentHex : 'var(--c-border)'}`,
+        borderRadius: '6px',
+        overflow: 'hidden',
+        boxShadow: `inset 3px 0 0 ${accent}`,
+        transition: 'border-color 0.2s ease, box-shadow 0.4s ease',
+        cursor: 'pointer'
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 12px',
+        background: 'var(--c-raised)',
+        borderBottom: '1px solid var(--c-border-s)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            fontSize: '9px', fontFamily: 'var(--mono)', fontWeight: 600,
+            color: 'var(--c-muted)', background: 'var(--c-border-s)',
+            border: '1px solid var(--c-border)',
+            padding: '2px 5px', borderRadius: '3px',
+            letterSpacing: '0.06em', flexShrink: 0
+          }}>
+            {TYPE_BADGES[device.type] || 'DEV'}
+          </span>
           <div>
-            <p className="text-white font-medium text-sm">{device.name}</p>
-            <p className="text-gray-500 text-xs">{device.id}</p>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-bright)', lineHeight: 1.2 }}>
+              {device.name}
+            </div>
+            <div style={{
+              fontSize: '10px', fontFamily: 'var(--mono)',
+              color: 'var(--c-muted)', marginTop: '2px', letterSpacing: '0.04em'
+            }}>
+              {device.id}
+            </div>
           </div>
         </div>
-        <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${config.badge}`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${config.dot} ${status === 'anomaly' ? 'animate-pulse' : ''}`} />
-          {config.label}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '4px',
+          fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', color: statusColor
+        }}>
+          {isAnomaly && <span className="blink">▲</span>}
+          {statusLabel}
         </div>
       </div>
 
-      {/* Métriques */}
-      <div className="space-y-2">
-        {Object.entries(device.metrics || {}).map(([key, metric]) => (
-          <div key={key} className="flex justify-between items-center">
-            <span className="text-gray-400 text-xs capitalize">
-              {key.replace(/_/g, ' ')}
-            </span>
-            <span className={`text-xs font-mono font-medium ${
-              status === 'anomaly' ? 'text-red-300' : 'text-gray-200'
-            }`}>
-              {metric.value} {metric.unit}
-            </span>
-          </div>
-        ))}
+      {/* Metrics */}
+      <div style={{ padding: '10px 12px' }}>
+        {Object.entries(device.metrics || {}).map(([key, metric]) => {
+          const deviation = ((metric.value - metric.baseline) / metric.baseline) * 100
+          const showDeviation = isAnomaly && Math.abs(deviation) > 30
+
+          return (
+            <div key={key} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '4px 0', borderBottom: '1px solid var(--c-border-s)'
+            }}>
+              <span style={{ fontSize: '11px', color: 'var(--c-text)', textTransform: 'capitalize' }}>
+                {key.replace(/_/g, ' ')}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                {showDeviation && (
+                  <span style={{
+                    fontSize: '9px', fontFamily: 'var(--mono)', fontWeight: 600,
+                    color: 'var(--c-red)'
+                  }}>
+                    {deviation > 0 ? '▲' : '▼'}{Math.abs(deviation).toFixed(0)}%
+                  </span>
+                )}
+                <span style={{
+                  fontSize: '12px', fontFamily: 'var(--mono)', fontWeight: 500,
+                  color: isAnomaly ? 'var(--c-red)' : 'var(--c-bright)'
+                }}>
+                  {metric.value}
+                  <span style={{ fontSize: '10px', color: 'var(--c-muted)', marginLeft: '4px', fontWeight: 400 }}>
+                    {metric.unit}
+                  </span>
+                </span>
+              </span>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Score ML */}
+      {/* Sparkline + score */}
       {score !== undefined && (
-        <div className="mt-3 pt-3 border-t border-gray-700/50">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-500 text-xs">Score ML</span>
-            <span className={`text-xs font-mono ${
-              score < -0.15 ? 'text-red-400' :
-              score < -0.05 ? 'text-yellow-400' :
-              'text-green-400'
-            }`}>
-              {score}
+        <div style={{ padding: '4px 12px 10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+            <span style={{ fontSize: '10px', color: 'var(--c-muted)', letterSpacing: '0.06em', fontWeight: 500 }}>
+              TENDANCE ML
+            </span>
+            <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', fontWeight: 600, color: statusColor }}>
+              {score?.toFixed(4)}
             </span>
           </div>
+          <Sparkline data={scoreHistory} color={accentHex} height={26} />
         </div>
       )}
-
     </div>
   )
 }
