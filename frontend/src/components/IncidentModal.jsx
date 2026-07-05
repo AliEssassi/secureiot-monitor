@@ -7,6 +7,8 @@ const STATUS_CONFIG = {
 }
 
 function IncidentModal({ incidentId, onClose }) {
+  const [aiAnalysis, setAiAnalysis] = useState(null)
+  const [analyzing, setAnalyzing] = useState(false)
   const [incident, setIncident] = useState(null)
   const [updating, setUpdating] = useState(false)
 
@@ -21,6 +23,7 @@ function IncidentModal({ incidentId, onClose }) {
 
   useEffect(() => {
     if (!incidentId) return
+    setAiAnalysis(null)
     fetchIncident()
     const iv = setInterval(fetchIncident, 2000)
     return () => clearInterval(iv)
@@ -42,6 +45,19 @@ function IncidentModal({ incidentId, onClose }) {
       console.error(err)
     }
     setUpdating(false)
+  }
+
+  const runAiAnalysis = async () => {
+    setAnalyzing(true)
+    setAiAnalysis(null)
+    try {
+      const res = await fetch(`/api/incidents/${incidentId}/analyze`, { method: 'POST' })
+      const data = await res.json()
+      setAiAnalysis(data.analysis)
+    } catch (err) {
+      setAiAnalysis("Erreur lors de l'analyse. Réessayez.")
+    }
+    setAnalyzing(false)
   }
 
   if (!incidentId) return null
@@ -198,6 +214,77 @@ function IncidentModal({ incidentId, onClose }) {
                 </div>
               )}
 
+              {/* Analyse IA */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  marginBottom: '10px'
+                }}>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 600, letterSpacing: '0.08em',
+                    color: 'var(--c-muted)'
+                  }}>
+                    ANALYSE IA
+                  </span>
+                  {!aiAnalysis && !analyzing && (
+                    <button
+                      onClick={runAiAnalysis}
+                      style={{
+                        fontSize: '11px', fontWeight: 600,
+                        color: 'var(--c-purple)',
+                        background: '#9B6FE815',
+                        border: '1px solid #9B6FE840',
+                        borderRadius: '4px',
+                        padding: '5px 12px', cursor: 'pointer'
+                      }}
+                    >
+                      ✦ Analyser avec l'IA
+                    </button>
+                  )}
+                </div>
+
+                {analyzing && (
+                  <div style={{
+                    padding: '16px',
+                    background: 'var(--c-raised)',
+                    border: '1px solid var(--c-border)',
+                    borderRadius: '6px',
+                    display: 'flex', alignItems: 'center', gap: '10px'
+                  }}>
+                    <div className="blink" style={{ color: 'var(--c-purple)', fontSize: '14px' }}>✦</div>
+                    <span style={{ fontSize: '12px', color: 'var(--c-muted)' }}>
+                      Analyse en cours...
+                    </span>
+                  </div>
+                )}
+
+                {aiAnalysis && (
+                  <div style={{
+                    padding: '14px 16px',
+                    background: '#9B6FE808',
+                    border: '1px solid #9B6FE825',
+                    borderRadius: '6px',
+                    borderLeft: '3px solid var(--c-purple)'
+                  }}>
+                    <div style={{
+                      fontSize: '12px', lineHeight: 1.7, color: 'var(--c-text)',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {formatAiText(aiAnalysis)}
+                    </div>
+                    <div style={{
+                      marginTop: '10px', paddingTop: '10px',
+                      borderTop: '1px solid #9B6FE820',
+                      fontSize: '9px', color: 'var(--c-muted)',
+                      display: 'flex', alignItems: 'center', gap: '5px'
+                    }}>
+                      <span style={{ color: 'var(--c-purple)' }}>✦</span>
+                      Généré par Claude Haiku · à titre d'aide à la décision
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Timeline */}
               <div>
                 <div style={{
@@ -339,4 +426,18 @@ function InfoCell({ label, value, mono, color }) {
   )
 }
 
+function formatAiText(text) {
+  // Découpe le texte en segments et met en gras les **titres**
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={i} style={{ color: 'var(--c-purple)', fontWeight: 600 }}>
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
 export default IncidentModal

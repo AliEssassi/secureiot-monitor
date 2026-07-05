@@ -8,6 +8,8 @@ DEVICES = [
         "id": "DEV-001",
         "name": "Machine-outil CNC",
         "type": "machine",
+        "role": "Centre d'usinage de précision commandé numériquement",
+        "security_stake": "Une compromission peut altérer les programmes d'usinage (sabotage de pièces), endommager la machine, ou révéler des secrets de fabrication.",
         "metrics": {
             "temperature": {"baseline": 65, "unit": "°C"},
             "vibrations": {"baseline": 120, "unit": "Hz"},
@@ -18,6 +20,8 @@ DEVICES = [
         "id": "DEV-002",
         "name": "Passerelle réseau",
         "type": "router",
+        "role": "Point de passage réseau central reliant tous les équipements de l'atelier",
+        "security_stake": "Nœud le plus critique : sa compromission expose l'ensemble du réseau et permet un mouvement latéral vers tous les autres appareils.",
         "metrics": {
             "connexions": {"baseline": 12, "unit": "conn"},
             "bande_passante": {"baseline": 45, "unit": "Mbps"},
@@ -28,6 +32,8 @@ DEVICES = [
         "id": "DEV-003",
         "name": "Capteur ambiance",
         "type": "sensor",
+        "role": "Capteur environnemental surveillant température, humidité et CO2 de l'atelier",
+        "security_stake": "Une manipulation fausse les conditions perçues de l'atelier, pouvant masquer un incident réel ou déclencher de fausses alertes.",
         "metrics": {
             "temperature": {"baseline": 22, "unit": "°C"},
             "humidite": {"baseline": 55, "unit": "%"},
@@ -38,6 +44,8 @@ DEVICES = [
         "id": "DEV-004",
         "name": "Robot collaboratif",
         "type": "robot",
+        "role": "Bras robotisé travaillant aux côtés des opérateurs humains",
+        "security_stake": "Enjeu de sécurité physique : une prise de contrôle peut provoquer des mouvements dangereux mettant en danger les opérateurs à proximité.",
         "metrics": {
             "vitesse": {"baseline": 250, "unit": "mm/s"},
             "charge": {"baseline": 60, "unit": "%"},
@@ -48,6 +56,8 @@ DEVICES = [
         "id": "DEV-005",
         "name": "Compteur énergie",
         "type": "smartmeter",
+        "role": "Compteur intelligent mesurant la consommation électrique de l'atelier",
+        "security_stake": "Une manipulation peut masquer un vol d'énergie, fausser la facturation, ou dissimuler l'activité anormale d'un équipement compromis.",
         "metrics": {
             "consommation": {"baseline": 12.5, "unit": "kWh"},
             "tension": {"baseline": 230, "unit": "V"},
@@ -58,6 +68,8 @@ DEVICES = [
         "id": "DEV-006",
         "name": "Caméra sécurité",
         "type": "camera",
+        "role": "Caméra de vidéosurveillance de la zone de production",
+        "security_stake": "Une compromission peut permettre l'exfiltration d'images sensibles, ou le gel/détournement du flux pour masquer une intrusion physique.",
         "metrics": {
             "fps": {"baseline": 25, "unit": "fps"},
             "bande_passante": {"baseline": 8, "unit": "Mbps"},
@@ -65,7 +77,6 @@ DEVICES = [
         }
     },
 ]
-
 # Stocke les anomalies actives par appareil
 active_anomalies = {}
 # Historique des snapshots par appareil (pour les graphiques)
@@ -179,3 +190,20 @@ def clear_anomaly(device_id: str) -> dict:
 def get_devices_list() -> list:
     """Retourne la liste des appareils sans leurs métriques."""
     return [{"id": d["id"], "name": d["name"], "type": d["type"]} for d in DEVICES]
+
+def get_active_anomaly_type(device_id: str) -> str | None:
+    """Retourne le type d'anomalie actif sur un device, s'il y en a un."""
+    anomaly = active_anomalies.get(device_id)
+    return anomaly["type"] if anomaly else None
+
+def get_device_context(device_id: str) -> dict:
+    """Retourne le contexte métier d'un device pour l'analyse IA."""
+    for d in DEVICES:
+        if d["id"] == device_id:
+            return {
+                "name": d["name"],
+                "type": d["type"],
+                "role": d.get("role", ""),
+                "security_stake": d.get("security_stake", ""),
+            }
+    return {}
