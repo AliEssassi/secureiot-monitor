@@ -52,7 +52,27 @@ function AlertPanel({ onIncidentClick }) {
         <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--c-muted)' }}>
           INCIDENTS
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {incidents.length > 0 && (
+            <button
+              onClick={async () => {
+                await fetch('/api/incidents/clear-all', { method: 'POST' })
+                setIncidents([])
+              }}
+              style={{
+                fontSize: '9px', fontWeight: 600, letterSpacing: '0.04em',
+                color: 'var(--c-muted)',
+                background: 'transparent',
+                border: '1px solid var(--c-border)',
+                borderRadius: '3px',
+                padding: '3px 8px', cursor: 'pointer'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--c-red)'; e.currentTarget.style.color = 'var(--c-red)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--c-border)'; e.currentTarget.style.color = 'var(--c-muted)' }}
+            >
+              Tout effacer
+            </button>
+          )}
           {activeCount > 0 && (
             <span style={{ fontSize: '10px', color: 'var(--c-muted)', fontFamily: 'var(--mono)' }}>
               {activeCount} actif{activeCount > 1 ? 's' : ''}

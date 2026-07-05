@@ -24,7 +24,22 @@ function IncidentModal({ incidentId, onClose }) {
   useEffect(() => {
     if (!incidentId) return
     setAiAnalysis(null)
-    fetchIncident()
+
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/incidents/${incidentId}`)
+        if (res.ok) {
+          const data = await res.json()
+          setIncident(data)
+          // Récupère l'analyse déjà stockée si elle existe
+          if (data.ai_analysis) setAiAnalysis(data.ai_analysis)
+        }
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    load()
     const iv = setInterval(fetchIncident, 2000)
     return () => clearInterval(iv)
   }, [incidentId])
@@ -301,8 +316,9 @@ function IncidentModal({ incidentId, onClose }) {
                   {[...incident.timeline].reverse().slice(0, 15).map((event, i) => {
                     const isStatus = event.event === 'status_change'
                     const isCreated = event.event === 'created'
-                    const dotColor = isCreated ? sevHex : isStatus ? '#E8A840' : '#3A5070'
-
+                    const isAi = event.event === 'ai_analysis'
+                    const dotColor = isCreated ? sevHex : isStatus ? '#E8A840' : isAi ? '#9B6FE8' : '#3A5070'
+                    
                     return (
                       <div key={i} style={{ position: 'relative' }}>
                         <div style={{
@@ -320,9 +336,10 @@ function IncidentModal({ incidentId, onClose }) {
                           </span>
                           <span style={{
                             fontSize: '12px',
-                            color: isStatus || isCreated ? 'var(--c-text)' : 'var(--c-muted)',
-                            fontWeight: isStatus || isCreated ? 500 : 400
+                            color: isStatus || isCreated || isAi ? 'var(--c-text)' : 'var(--c-muted)',
+                            fontWeight: isStatus || isCreated || isAi ? 500 : 400
                           }}>
+                            {isAi && <span style={{ color: '#9B6FE8', marginRight: '4px' }}>✦</span>}
                             {event.detail}
                           </span>
                         </div>

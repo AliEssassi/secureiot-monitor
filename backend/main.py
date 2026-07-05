@@ -122,7 +122,6 @@ def analyze(incident_id: str):
         device_context = get_device_context(device_id)
         is_gateway = device_id == GATEWAY_ID
 
-        # État de la passerelle pour le contexte de propagation
         snapshot = get_all_snapshots()
         for s in snapshot:
             s["analysis"] = detector.analyze(s)
@@ -133,6 +132,25 @@ def analyze(incident_id: str):
             incident, anomaly_type, device_context,
             is_gateway, gateway_compromised
         )
+
+        # Stocke l'analyse dans l'incident + log dans la timeline
+        incidents.attach_analysis(incident_id, analysis)
+
         return {"incident_id": incident_id, "analysis": analysis}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur analyse IA : {str(e)}")
+    
+        
+@app.post("/api/incidents/clear-all")
+def clear_all_incidents():
+    # Coupe toutes les anomalies actives d'abord
+    from simulator import DEVICES
+    for device in DEVICES:
+        clear_anomaly(device["id"])
+    incidents.clear_all()
+    return {"status": "all_cleared"}
+
+@app.post("/api/incidents/clear-resolved")
+def clear_resolved_incidents():
+    incidents.clear_resolved()
+    return {"status": "resolved_cleared"}

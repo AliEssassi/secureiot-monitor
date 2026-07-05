@@ -141,3 +141,27 @@ class IncidentManager:
                     "detail": "Statut changé : Résolu automatiquement (retour à la normale)"
                 })
                 self.cooldown[device_id] = datetime.now() + timedelta(seconds=self.COOLDOWN_SECONDS)
+
+    def clear_all(self):
+        """Vide tous les incidents et réinitialise les compteurs."""
+        self.incidents = {}
+        self.cooldown = {}
+
+    def clear_resolved(self):
+        """Supprime uniquement les incidents résolus."""
+        self.incidents = {
+            k: v for k, v in self.incidents.items()
+            if v["status"] != "resolved"
+        }
+
+    def attach_analysis(self, incident_id: str, analysis: str):
+        """Stocke l'analyse IA dans l'incident et la trace dans la timeline."""
+        if incident_id not in self.incidents:
+            return
+        incident = self.incidents[incident_id]
+        incident["ai_analysis"] = analysis
+        incident["timeline"].append({
+            "timestamp": datetime.now().isoformat(),
+            "event": "ai_analysis",
+            "detail": "Analyse IA effectuée"
+        })
